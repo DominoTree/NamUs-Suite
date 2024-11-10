@@ -1,14 +1,16 @@
 use std::error::Error;
 
+use futures::{stream, StreamExt};
 use log::*;
 
-const PARALLEL_REQUESTS: u8 = 5;
+const PARALLEL_REQUESTS: usize = 5;
 
-async fn get_case(state: &str, category: &str) -> Result<(), Box<dyn Error>> {
+async fn get_case(state: String, category: &str) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
 async fn get_cases_by_state(state: &str, category: &str) -> Result<(), Box<dyn Error>> {
+    println!("{state}");
     Ok(())
 }
 
@@ -40,8 +42,13 @@ async fn get_states() -> Result<Vec<String>, Box<dyn Error>> {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
-    let mut output = String::new();
     let states = get_states().await?;
-    println!("{:?}", states);
+
+    let _out = stream::iter(states)
+        .for_each_concurrent(PARALLEL_REQUESTS, |state| async move {
+            get_cases_by_state(&state, "Missing Persons").await.unwrap();
+        })
+        .await;
+
     Ok(())
 }
