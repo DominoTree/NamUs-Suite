@@ -5,7 +5,7 @@ use log::*;
 
 const PARALLEL_REQUESTS: usize = 5;
 
-async fn get_case(state: String, category: &str) -> Result<(), Box<dyn Error>> {
+async fn _get_case(state: String, category: &str) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
@@ -32,6 +32,7 @@ async fn get_states() -> Result<Vec<String>, Box<dyn Error>> {
         // I believe that as_string should always be safe on an existing value
         // but it doesn't hurt to test anyways
         if state_name.is_none() || !state_name.unwrap().is_string() {
+            debug!("{state:?}");
             return Err(Box::<dyn Error>::from("Missing or invalid state name"));
         }
 
