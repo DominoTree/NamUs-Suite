@@ -1,6 +1,7 @@
 use std::error::Error;
+use std::thread::sleep;
+use std::time::Duration;
 
-use futures::{stream, StreamExt};
 use log::*;
 use tokio::sync::Semaphore;
 use tokio::task::JoinSet;
@@ -13,6 +14,7 @@ async fn _get_case(state: String, category: &str) -> Result<(), Box<dyn Error>> 
 
 async fn get_cases_by_state(state: &str, category: &str) -> Result<(), Box<dyn Error>> {
     println!("{state}");
+    sleep(Duration::new(1, 0));
     Ok(())
 }
 
@@ -48,12 +50,10 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let states = get_states().await?;
 
     let sema = Semaphore::new(PARALLEL_REQUESTS);
-
-    let _out = stream::iter(states)
-        .for_each_concurrent(PARALLEL_REQUESTS, |state| async move {
-            get_cases_by_state(&state, "Missing Persons").await.unwrap();
-        })
-        .await;
+    for state in states {
+        println!("{:?}", sema.acquire().await.unwrap());
+        get_cases_by_state(&state, "Missing Persons").await.unwrap();
+    }
 
     Ok(())
 }
