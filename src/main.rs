@@ -56,7 +56,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
         let sema = sema.clone();
         let jh = tokio::spawn(async move {
             println!("{:?}", sema.acquire().await.unwrap());
-            get_cases_by_state(&state, "Missing Persons").await.unwrap()
+            get_cases_by_state(&state, "Missing Persons").await.unwrap();
+            drop(sema);
         });
         jhs.push(jh);
     }
