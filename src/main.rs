@@ -1,21 +1,48 @@
 use std::error::Error;
 use std::sync::Arc;
-use std::thread::sleep;
-use std::time::Duration;
 
 use log::*;
+use serde_json::json;
 use tokio::sync::Semaphore;
 use tokio::task::JoinSet;
 
 const PARALLEL_REQUESTS: usize = 5;
 
-async fn _get_case(state: String, category: &str) -> Result<(), Box<dyn Error>> {
+enum CaseCategory {
+    MissingPersons,
+    UnidentifiedPersons,
+    UnclaimedPersons,
+}
+
+impl std::fmt::Display for CaseCategory {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let out = match self {
+            CaseCategory::MissingPersons => "MissingPersons",
+            CaseCategory::UnidentifiedPersons => "UnidentifiedPersons",
+            CaseCategory::UnclaimedPersons => "UnclaimedPersons",
+        };
+        write!(f, "{}", out)
+    }
+}
+
+async fn get_case(case_id: u32, category: CaseCategory) -> Result<(), Box<dyn Error>> {
+    let res = reqwest::get(format!("https://www.namus.gov/api/CaseSets/NamUs/{category}/Cases/{case_id}")).await;
     Ok(())
 }
 
-async fn get_cases_by_state(state: &str, category: &str) -> Result<(), Box<dyn Error>> {
-    println!("{state}");
-    sleep(Duration::new(1, 0));
+async fn get_cases_by_state(state: &str, category: CaseCategory) -> Result<(), Box<dyn Error>> {
+    // TODO: Deal with pagination (not necessary yet)
+    let request_body = json!({
+            "take": 10000,
+            "projections": ["namus2Number"],
+            "predicates": [
+                {
+                    "field": "stateOfLastContact",
+                    "operator": "IsIn",
+                    "values": [state],
+                }
+            ],
+        });
     Ok(())
 }
 
@@ -56,7 +83,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         let sema = sema.clone();
         let jh = tokio::spawn(async move {
             println!("{:?}", sema.acquire().await.unwrap());
-            get_cases_by_state(&state, "Missing Persons").await.unwrap();
+            get_cases_by_state(&state, CaseCategory::MissingPersons).await.unwrap();
             drop(sema);
         });
         jhs.push(jh);
