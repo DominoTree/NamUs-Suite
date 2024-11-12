@@ -1,4 +1,5 @@
 use std::error::Error;
+use std::sync::Arc;
 use std::thread::sleep;
 use std::time::Duration;
 
@@ -49,10 +50,20 @@ async fn get_states() -> Result<Vec<String>, Box<dyn Error>> {
 async fn main() -> Result<(), Box<dyn Error>> {
     let states = get_states().await?;
 
-    let sema = Semaphore::new(PARALLEL_REQUESTS);
+    let sema = Arc::new(Semaphore::new(PARALLEL_REQUESTS));
+    let mut jhs = Vec::new();
     for state in states {
-        println!("{:?}", sema.acquire().await.unwrap());
-        get_cases_by_state(&state, "Missing Persons").await.unwrap();
+        let sema = sema.clone();
+        let jh = tokio::spawn(async move {
+            println!("{:?}", sema.acquire().await.unwrap());
+            get_cases_by_state(&state, "Missing Persons").await.unwrap()
+        });
+        jhs.push(jh);
+    }
+
+    for jh in jhs {
+        let resp = jh.await.unwrap();
+        println!("{:?}", resp);
     }
 
     Ok(())
