@@ -2,6 +2,8 @@ use std::error::Error;
 
 use futures::{stream, StreamExt};
 use log::*;
+use tokio::sync::Semaphore;
+use tokio::task::JoinSet;
 
 const PARALLEL_REQUESTS: usize = 5;
 
@@ -44,6 +46,8 @@ async fn get_states() -> Result<Vec<String>, Box<dyn Error>> {
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
     let states = get_states().await?;
+
+    let sema = Semaphore::new(PARALLEL_REQUESTS);
 
     let _out = stream::iter(states)
         .for_each_concurrent(PARALLEL_REQUESTS, |state| async move {
