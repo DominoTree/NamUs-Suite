@@ -5,7 +5,6 @@ use log::*;
 use serde_json::json;
 use tokio::sync::Semaphore;
 use tokio::task::JoinSet;
-use url::Url;
 
 const PARALLEL_REQUESTS: usize = 5;
 
@@ -27,29 +26,23 @@ impl std::fmt::Display for CaseCategory {
 }
 
 async fn get_case(case_id: u32, category: CaseCategory) -> Result<(), Box<dyn Error>> {
-    let res = reqwest::get(
-        Url::parse("https://www.namus.gov/api/CaseSets/NamUs/")?
-            .join(&category.to_string())?
-            .join("Cases")?
-            .join(&case_id.to_string())?,
-    )
-    .await;
+    let res = reqwest::get(format!("https://www.namus.gov/api/CaseSets/NamUs/{category}/Cases/{case_id}")).await;
     Ok(())
 }
 
 async fn get_cases_by_state(state: &str, category: CaseCategory) -> Result<(), Box<dyn Error>> {
     // TODO: Deal with pagination (not necessary yet)
     let request_body = json!({
-        "take": 10000,
-        "projections": ["namus2Number"],
-        "predicates": [
-            {
-                "field": "stateOfLastContact",
-                "operator": "IsIn",
-                "values": [state],
-            }
-        ],
-    });
+            "take": 10000,
+            "projections": ["namus2Number"],
+            "predicates": [
+                {
+                    "field": "stateOfLastContact",
+                    "operator": "IsIn",
+                    "values": [state],
+                }
+            ],
+        });
     Ok(())
 }
 
@@ -90,10 +83,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
         let sema = sema.clone();
         let jh = tokio::spawn(async move {
             println!("{:?}", sema.acquire().await.unwrap());
-            get_cases_by_state(&state, CaseCategory::MissingPersons)
-                .await
-                .unwrap();
-            drop(sema);
+            get_cases_by_state(&state, CaseCategory::MissingPersons).await.unwrap()
+            // semaphore should be dropped automatically
         });
         jhs.push(jh);
     }
