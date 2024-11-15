@@ -39,7 +39,7 @@ async fn get_case(case_id: u32, category: CaseCategory) -> Result<(), Box<dyn Er
 
 async fn get_cases_by_state(state: &str, category: CaseCategory) -> Result<(), Box<dyn Error>> {
     // TODO: Deal with pagination (not necessary yet)
-    let request_body = json!({
+    let body = json!({
         "take": 10000,
         "projections": ["namus2Number"],
         "predicates": [
@@ -50,6 +50,20 @@ async fn get_cases_by_state(state: &str, category: CaseCategory) -> Result<(), B
             }
         ],
     });
+
+    println!("{:?}", body);
+
+    let resp = reqwest::Client::new()
+        .post(
+            Url::parse("https://www.namus.gov/api/CaseSets/NamUs/")?
+                .join(&(category.to_string() + "/"))?
+                .join("Search")?,
+        )
+        .json(&body)
+        .send()
+        .await?;
+    println!("{:?}", resp.text().await?);
+
     Ok(())
 }
 
@@ -83,6 +97,7 @@ async fn get_states() -> Result<Vec<String>, Box<dyn Error>> {
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
     let states = get_states().await?;
+    println!("{:?}", states);
 
     let sema = Arc::new(Semaphore::new(PARALLEL_REQUESTS));
     let mut jhs = Vec::new();
