@@ -5,7 +5,6 @@ use log::*;
 use serde_json::json;
 use tokio::sync::Semaphore;
 use tokio::task::JoinSet;
-use url::Url;
 
 const PARALLEL_REQUESTS: usize = 5;
 
@@ -27,12 +26,9 @@ impl std::fmt::Display for CaseCategory {
 }
 
 async fn get_case(case_id: u32, category: CaseCategory) -> Result<(), Box<dyn Error>> {
-    let res = reqwest::get(
-        Url::parse("https://www.namus.gov/api/CaseSets/NamUs/")?
-            .join(&category.to_string())?
-            .join("Cases")?
-            .join(&case_id.to_string())?,
-    )
+    let res = reqwest::get(format!(
+        "https://www.namus.gov/api/CaseSets/NamUs/{category}/Cases/{case_id}"
+    ))
     .await;
     Ok(())
 }
@@ -54,11 +50,9 @@ async fn get_cases_by_state(state: &str, category: CaseCategory) -> Result<(), B
     println!("{:?}", body);
 
     let resp = reqwest::Client::new()
-        .post(
-            Url::parse("https://www.namus.gov/api/CaseSets/NamUs/")?
-                .join(&(category.to_string() + "/"))?
-                .join("Search")?,
-        )
+        .post(format!(
+            "https://www.namus.gov/api/CaseSets/NamUs/{category}/Search"
+        ))
         .json(&body)
         .send()
         .await?;
