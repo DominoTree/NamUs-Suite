@@ -4,7 +4,7 @@ use std::sync::Arc;
 use serde_json::json;
 use tokio::sync::Semaphore;
 use tokio::task::JoinSet;
-use tracing::debug;
+use tracing::{debug, info}; // apparently these are actually blocking, but it should be fine here
 use tracing_subscriber;
 
 const PARALLEL_REQUESTS: usize = 5;
@@ -26,19 +26,31 @@ impl std::fmt::Display for CaseCategory {
     }
 }
 
-async fn get_case(case_id: u32, category: CaseCategory) -> Result<(), Box<dyn Error>> {
+async fn output_json_lines(data: Vec<String>, outfile: &str) -> Result<(), Box<dyn Error>> {
+    let mut out = String::from("[");
+    for line in data {
+        out += "\t";
+        out += &line;
+        out += ",\r\n";
+    }
+    out += "]";
+    Ok(())
+}
+
+async fn get_case(case_id: u32, category: CaseCategory) -> Result<String, Box<dyn Error>> {
     let res = reqwest::get(format!(
         "https://www.namus.gov/api/CaseSets/NamUs/{category}/Cases/{case_id}"
     ))
     .await;
-    Ok(())
+    // just returning untouched JSON body here
+    Ok(res?.text().await?)
 }
 
 async fn get_cases_by_state(
     state: &str,
     category: CaseCategory,
 ) -> Result<Vec<u32>, Box<dyn Error>> {
-    // TODO: Deal with pagination (not necessary yet)
+    // TODO: Deal with pagination (not necessary yet as no state has more than 10,000 cases)
     let body = json!({
         "take": 10000,
         "projections": ["namus2Number"],
@@ -59,12 +71,14 @@ async fn get_cases_by_state(
         .send()
         .await?;
 
-    println!("{:?}", resp);
+    debug!("{}", resp.text().await?);
 
-    Ok(Vec::new())
+    let mut ids = Vec::<u32>::new();
+
+    Ok(ids)
 }
 
-async fn get_states() -> Result<Vec<String>, Box<dyn Error>> {
+async fn get_states_and_territories() -> Result<Vec<String>, Box<dyn Error>> {
     let mut states = Vec::new();
     let resp = reqwest::get("https://www.namus.gov/api/CaseSets/NamUs/States")
         .await?
@@ -99,7 +113,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     tracing_subscriber::fmt::init();
 
-    let states = get_states().await?;
+    info!("Getting active states and territories");
+    let states = get_states_and_territories().await?;
 
     let sema = Arc::new(Semaphore::new(PARALLEL_REQUESTS));
     let mut jhs = Vec::new();
@@ -108,20 +123,24 @@ async fn main() -> Result<(), Box<dyn Error>> {
         let sema = sema.clone();
         let jh = tokio::spawn(async move {
             let sema = sema.acquire().await.unwrap();
-            println!("{:?}", sema);
-            get_cases_by_state(&state, CaseCategory::MissingPersons)
+            info!("Getting cases from {state}");
+            let res = get_cases_by_state(&state, CaseCategory::MissingPersons)
                 .await
-                .unwrap()
+                .unwrap();
+            info!("Found {} cases in {state}", res.len());
+            res
             // semaphore should be dropped automatically
         });
         jhs.push(jh);
     }
 
-    let cases = Vec::<u32>::new();
+    let mut case_ids = Vec::<u32>::new();
     for jh in jhs {
-        let resp = jh.await.unwrap();
-        println!("{:?}", resp);
+        case_ids.append(&mut jh.await?);
     }
+    info!("Found {} total cases", case_ids.len());
+
+    for case_id in case_ids {}
 
     // we shouldn't need to bother deserializing and reserializing these
     let results = Vec::<String>::new();
