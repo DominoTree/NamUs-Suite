@@ -82,6 +82,8 @@ async fn get_states() -> Result<Vec<String>, Box<dyn Error>> {
             return Err(Box::<dyn Error>::from("Missing or invalid state name"));
         }
 
+        // We cannot take a Value and simply call .to_string() on it or it will retain the quotes
+        // around the string. We must first call .as_str() to turn it into an &str
         states.push(state_name.unwrap().as_str().unwrap().to_string());
     }
     Ok(states)
