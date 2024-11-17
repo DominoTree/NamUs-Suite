@@ -98,6 +98,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
     for state in states {
         let sema = sema.clone();
         let jh = tokio::spawn(async move {
+            let sema = sema.acquire().await.unwrap();
+            println!("{:?}", sema);
             get_cases_by_state(&state, CaseCategory::MissingPersons)
                 .await
                 .unwrap()
