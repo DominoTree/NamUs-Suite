@@ -34,7 +34,10 @@ async fn get_case(case_id: u32, category: CaseCategory) -> Result<(), Box<dyn Er
     Ok(())
 }
 
-async fn get_cases_by_state(state: &str, category: CaseCategory) -> Result<(), Box<dyn Error>> {
+async fn get_cases_by_state(
+    state: &str,
+    category: CaseCategory,
+) -> Result<Vec<u32>, Box<dyn Error>> {
     // TODO: Deal with pagination (not necessary yet)
     let body = json!({
         "take": 10000,
@@ -58,7 +61,7 @@ async fn get_cases_by_state(state: &str, category: CaseCategory) -> Result<(), B
 
     println!("{:?}", resp);
 
-    Ok(())
+    Ok(Vec::new())
 }
 
 async fn get_states() -> Result<Vec<String>, Box<dyn Error>> {
@@ -100,6 +103,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     let sema = Arc::new(Semaphore::new(PARALLEL_REQUESTS));
     let mut jhs = Vec::new();
+
     for state in states {
         let sema = sema.clone();
         let jh = tokio::spawn(async move {
@@ -113,7 +117,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         jhs.push(jh);
     }
 
-    let cases = Vec::<serde_json::Value>::new();
+    let cases = Vec::<u32>::new();
     for jh in jhs {
         let resp = jh.await.unwrap();
         println!("{:?}", resp);
