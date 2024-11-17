@@ -113,10 +113,14 @@ async fn main() -> Result<(), Box<dyn Error>> {
         jhs.push(jh);
     }
 
+    let cases = Vec::<serde_json::Value>::new();
     for jh in jhs {
         let resp = jh.await.unwrap();
         println!("{:?}", resp);
     }
+
+    let results = Vec::<serde_json::Value>::new();
+    let failed = Vec::<reqwest::Request>::new();
 
     Ok(())
 }
