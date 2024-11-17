@@ -1,10 +1,11 @@
 use std::error::Error;
 use std::sync::Arc;
 
-use log::*;
 use serde_json::json;
 use tokio::sync::Semaphore;
 use tokio::task::JoinSet;
+use tracing::debug;
+use tracing_subscriber;
 
 const PARALLEL_REQUESTS: usize = 5;
 
@@ -91,6 +92,8 @@ async fn get_states() -> Result<Vec<String>, Box<dyn Error>> {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
+    tracing_subscriber::fmt::init();
+
     let states = get_states().await?;
 
     let sema = Arc::new(Semaphore::new(PARALLEL_REQUESTS));
