@@ -123,8 +123,10 @@ async fn main() -> Result<(), Box<dyn Error>> {
         println!("{:?}", resp);
     }
 
-    let results = Vec::<serde_json::Value>::new();
-    let failed = Vec::<reqwest::Request>::new();
+    // we shouldn't need to bother deserializing and reserializing these
+    let results = Vec::<String>::new();
+    // saving the failed IDs here should be enough
+    let failed = Vec::<u32>::new();
 
     Ok(())
 }
