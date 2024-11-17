@@ -47,8 +47,6 @@ async fn get_cases_by_state(state: &str, category: CaseCategory) -> Result<(), B
         ],
     });
 
-    println!("{:?}", body);
-
     let resp = reqwest::Client::new()
         .post(format!(
             "https://www.namus.gov/api/CaseSets/NamUs/{category}/Search"
@@ -56,7 +54,6 @@ async fn get_cases_by_state(state: &str, category: CaseCategory) -> Result<(), B
         .json(&body)
         .send()
         .await?;
-    println!("{:?}", resp.text().await?);
 
     Ok(())
 }
@@ -75,6 +72,9 @@ async fn get_states() -> Result<Vec<String>, Box<dyn Error>> {
 
     for state in resp.as_array().unwrap() {
         let state_name = state.get("name");
+        // TODO: why is this adding quotes?
+        // is it adding quotes?
+        println!("{}", state_name.unwrap().to_string());
 
         // I believe that as_string should always be safe on an existing value
         // but it doesn't hurt to test anyways
@@ -91,14 +91,12 @@ async fn get_states() -> Result<Vec<String>, Box<dyn Error>> {
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
     let states = get_states().await?;
-    println!("{:?}", states);
 
     let sema = Arc::new(Semaphore::new(PARALLEL_REQUESTS));
     let mut jhs = Vec::new();
     for state in states {
         let sema = sema.clone();
         let jh = tokio::spawn(async move {
-            println!("{:?}", sema.acquire().await.unwrap());
             get_cases_by_state(&state, CaseCategory::MissingPersons)
                 .await
                 .unwrap()
