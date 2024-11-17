@@ -55,6 +55,8 @@ async fn get_cases_by_state(state: &str, category: CaseCategory) -> Result<(), B
         .send()
         .await?;
 
+    println!("{:?}", resp);
+
     Ok(())
 }
 
@@ -72,9 +74,6 @@ async fn get_states() -> Result<Vec<String>, Box<dyn Error>> {
 
     for state in resp.as_array().unwrap() {
         let state_name = state.get("name");
-        // TODO: why is this adding quotes?
-        // is it adding quotes?
-        println!("{}", state_name.unwrap().to_string());
 
         // I believe that as_string should always be safe on an existing value
         // but it doesn't hurt to test anyways
@@ -83,7 +82,7 @@ async fn get_states() -> Result<Vec<String>, Box<dyn Error>> {
             return Err(Box::<dyn Error>::from("Missing or invalid state name"));
         }
 
-        states.push(state_name.unwrap().to_string());
+        states.push(state_name.unwrap().as_str().unwrap().to_string());
     }
     Ok(states)
 }
