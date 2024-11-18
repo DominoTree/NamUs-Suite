@@ -37,7 +37,7 @@ async fn output_json_lines(data: Vec<String>, outfile: &str) -> Result<(), Box<d
     Ok(())
 }
 
-async fn get_case(case_id: u32, category: CaseCategory) -> Result<String, Box<dyn Error>> {
+async fn get_case(case_id: u64, category: CaseCategory) -> Result<String, Box<dyn Error>> {
     let res = reqwest::get(format!(
         "https://www.namus.gov/api/CaseSets/NamUs/{category}/Cases/{case_id}"
     ))
@@ -49,7 +49,7 @@ async fn get_case(case_id: u32, category: CaseCategory) -> Result<String, Box<dy
 async fn get_cases_by_state(
     state: &str,
     category: CaseCategory,
-) -> Result<Vec<u32>, Box<dyn Error>> {
+) -> Result<Vec<u64>, Box<dyn Error>> {
     // TODO: Deal with pagination (not necessary yet as no state has more than 10,000 cases)
     let body = json!({
         "take": 10000,
@@ -75,11 +75,11 @@ async fn get_cases_by_state(
 
     let results_array = resp.get("results").unwrap().as_array().unwrap();
 
-    let mut ids = Vec::<u32>::new();
+    let mut ids = Vec::new();
 
     for result in results_array {
         let case_id = result.get("namus2Number").unwrap().as_u64().unwrap();
-        ids.push(case_id as u32);
+        ids.push(case_id);
     }
 
     Ok(ids)
@@ -141,7 +141,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         jhs.push(jh);
     }
 
-    let mut case_ids = Vec::<u32>::new();
+    let mut case_ids = Vec::<u64>::new();
     for jh in jhs {
         case_ids.append(&mut jh.await?);
     }
@@ -152,7 +152,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     // we shouldn't need to bother deserializing and reserializing these
     let results = Vec::<String>::new();
     // saving the failed IDs here should be enough
-    let failed = Vec::<u32>::new();
+    let failed = Vec::<u64>::new();
 
     Ok(())
 }
