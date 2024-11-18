@@ -69,11 +69,18 @@ async fn get_cases_by_state(
         ))
         .json(&body)
         .send()
+        .await?
+        .json::<serde_json::Value>()
         .await?;
 
-    debug!("{}", resp.text().await?);
+    let results_array = resp.get("results").unwrap().as_array().unwrap();
 
     let mut ids = Vec::<u32>::new();
+
+    for result in results_array {
+        let case_id = result.get("namus2Number").unwrap().as_u64().unwrap();
+        ids.push(case_id as u32);
+    }
 
     Ok(ids)
 }
