@@ -73,10 +73,12 @@ async fn get_cases_by_state(
         .json::<serde_json::Value>()
         .await?;
 
+    // TODO: clean this up and handle errors
     let results_array = resp.get("results").unwrap().as_array().unwrap();
 
     let mut ids = Vec::new();
 
+    // TODO: use collect:: or similar here?
     for result in results_array {
         let case_id = result.get("namus2Number").unwrap().as_u64().unwrap();
         ids.push(case_id);
