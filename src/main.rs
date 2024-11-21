@@ -128,6 +128,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let sema = Arc::new(Semaphore::new(PARALLEL_REQUESTS));
     let mut jhs = Vec::new();
 
+    // get lists of cases
     for state in states {
         let sema = sema.clone();
         let jh = tokio::spawn(async move {
@@ -149,12 +150,24 @@ async fn main() -> Result<(), Box<dyn Error>> {
     }
     info!("Found {} total cases", case_ids.len());
 
-    for case_id in case_ids {}
+    let mut jhs = Vec::new();
+
+    // get individual cases
+    for case_id in case_ids {
+        let sema = sema.clone();
+        let jh = tokio::spawn(async move {
+            let sema = sema.acquire().await.unwrap();
+            get_case(case_id, CaseCategory::MissingPersons)
+        });
+        jhs.push(jh);
+    }
 
     // we shouldn't need to bother deserializing and reserializing these
     let results = Vec::<String>::new();
     // saving the failed IDs here should be enough
     let failed = Vec::<u64>::new();
+
+    for jh in jhs {}
 
     Ok(())
 }
