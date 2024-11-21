@@ -167,7 +167,12 @@ async fn main() -> Result<(), Box<dyn Error>> {
     // saving the failed IDs here should be enough
     let failed = Vec::<u64>::new();
 
-    for jh in jhs {}
+    for jh in jhs {
+        match jh.await {
+            Ok(body) => results.push(body),
+            Err(_e) => failed.push(1),
+        };
+    }
 
     Ok(())
 }
