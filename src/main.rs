@@ -118,7 +118,7 @@ async fn get_states_and_territories() -> Result<Vec<String>, Box<dyn Error>> {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
-    dotenvy::dotenv()?;
+    let _ = dotenvy::dotenv();
 
     tracing_subscriber::fmt::init();
 
