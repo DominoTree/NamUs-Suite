@@ -172,7 +172,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
             let res = get_case(case_id, CaseCategory::MissingPersons).await;
             if res.is_err() {
                 info!("{}", res.err().unwrap());
-                return Err(case_id);
+                return Err((case_id, res.err().unwrap()));
             }
             drop(sema);
             Ok(res.unwrap())
@@ -188,7 +188,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     for jh in jhs {
         match jh.await.unwrap() {
             Ok(body) => results.push(body),
-            Err(id) => failed.push(id),
+            Err((id, _err)) => failed.push(id),
         };
     }
 
