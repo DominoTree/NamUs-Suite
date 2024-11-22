@@ -150,8 +150,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 // TODO: remove unwrap() here
                 .unwrap();
             info!("Found {} cases in {state}", res.len());
+            drop(sema);
             res
-            // semaphore should be dropped automatically
         });
         jhs.push(jh);
     }
@@ -168,12 +168,13 @@ async fn main() -> Result<(), Box<dyn Error>> {
     for case_id in case_ids {
         let sema = sema.clone();
         let jh = tokio::spawn(async move {
-            let _sema = sema.acquire().await.unwrap();
+            let sema = sema.acquire().await.unwrap();
             let res = get_case(case_id, CaseCategory::MissingPersons).await;
             if res.is_err() {
                 info!("{}", res.err().unwrap());
                 return Err(case_id);
             }
+            drop(sema);
             Ok(res.unwrap())
         });
         jhs.push(jh);
