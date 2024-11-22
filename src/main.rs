@@ -147,6 +147,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
             info!("Getting cases from {state}");
             let res = get_cases_by_state(&state, CaseCategory::MissingPersons)
                 .await
+                // TODO: remove unwrap() here
                 .unwrap();
             info!("Found {} cases in {state}", res.len());
             res
@@ -167,21 +168,26 @@ async fn main() -> Result<(), Box<dyn Error>> {
     for case_id in case_ids {
         let sema = sema.clone();
         let jh = tokio::spawn(async move {
-            let sema = sema.acquire().await.unwrap();
-            get_case(case_id, CaseCategory::MissingPersons)
+            let _sema = sema.acquire().await.unwrap();
+            let res = get_case(case_id, CaseCategory::MissingPersons).await;
+            if res.is_err() {
+                info!("{}", res.err().unwrap());
+                return Err(case_id);
+            }
+            Ok(res.unwrap())
         });
         jhs.push(jh);
     }
 
     // we shouldn't need to bother deserializing and reserializing these
-    let results = Vec::<String>::new();
+    let mut results = Vec::<String>::new();
     // saving the failed IDs here should be enough
-    let failed = Vec::<u64>::new();
+    let mut failed = Vec::<u64>::new();
 
     for jh in jhs {
-        match jh.await {
+        match jh.await.unwrap() {
             Ok(body) => results.push(body),
-            Err(_e) => failed.push(1),
+            Err(id) => failed.push(id),
         };
     }
 
