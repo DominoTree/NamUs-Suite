@@ -1,13 +1,11 @@
-use std::error::Error;
 use std::sync::Arc;
+use std::{env, error::Error};
 
 use serde_json::json;
 use tokio::sync::Semaphore;
 use tokio::task::JoinSet;
 use tracing::{debug, info}; // apparently these are actually blocking, but it should be fine here
 use tracing_subscriber;
-
-const PARALLEL_REQUESTS: usize = 5;
 
 enum CaseCategory {
     MissingPersons,
@@ -49,10 +47,19 @@ async fn output_json_lines(data: Vec<String>, outfile: &str) -> Result<(), Box<d
 }
 
 async fn get_case(case_id: u64, category: CaseCategory) -> Result<String, Box<dyn Error>> {
+    info!("Retrieving case {case_id}...");
     let res = reqwest::get(format!(
         "https://www.namus.gov/api/CaseSets/NamUs/{category}/Cases/{case_id}"
     ))
     .await;
+    match res {
+        Ok(_) => {
+            info!("Successfully retrieved case {case_id}");
+        }
+        Err(_) => {
+            info!("Failed to retrieve case {case_id}");
+        }
+    };
     // just returning untouched JSON body here
     Ok(res?.text().await?)
 }
@@ -136,7 +143,12 @@ async fn main() -> Result<(), Box<dyn Error>> {
     info!("Getting active states and territories");
     let states = get_states_and_territories().await?;
 
-    let sema = Arc::new(Semaphore::new(PARALLEL_REQUESTS));
+    let parallel_requests = match env::var("PARALLEL_REQUESTS") {
+        Ok(val) => val.parse().unwrap(),
+        Err(_) => 10,
+    };
+
+    let sema = Arc::new(Semaphore::new(parallel_requests));
     let mut set = JoinSet::new();
 
     // get lists of cases
