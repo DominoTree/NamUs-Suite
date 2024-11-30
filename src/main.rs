@@ -144,6 +144,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let states = get_states_and_territories().await?;
 
     let parallel_requests = match env::var("PARALLEL_REQUESTS") {
+        // TODO:  is there a clever Rust way to deal with the .unwrap() here?
         Ok(val) => val.parse().unwrap(),
         Err(_) => 10,
     };
