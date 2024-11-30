@@ -6,7 +6,7 @@ edition = "2021"
 [dependencies]
 dotenvy = "0.15.7"
 reqwest = { version = "0.12", features = ["json"] }
-serde_derive = "1.0.215"
+serde_derive = "1.0"
 serde_json = "1.0"
 tokio = { version = "1.41", features = ["full"] }
 tracing = "0.1.40"
