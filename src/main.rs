@@ -137,12 +137,12 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let states = get_states_and_territories().await?;
 
     let sema = Arc::new(Semaphore::new(PARALLEL_REQUESTS));
-    let mut jhs = Vec::new();
+    let mut set = JoinSet::new();
 
     // get lists of cases
     for state in states {
         let sema = sema.clone();
-        let jh = tokio::spawn(async move {
+        let _handle = set.spawn(async move {
             let sema = sema.acquire().await.unwrap();
             info!("Getting cases from {state}");
             let res = get_cases_by_state(&state, CaseCategory::MissingPersons)
@@ -153,21 +153,21 @@ async fn main() -> Result<(), Box<dyn Error>> {
             drop(sema);
             res
         });
-        jhs.push(jh);
     }
 
     let mut case_ids = Vec::<u64>::new();
-    for jh in jhs {
-        case_ids.append(&mut jh.await?);
+    while let Some(res) = set.join_next().await {
+        case_ids.append(&mut res?);
     }
+
     info!("Found {} total cases", case_ids.len());
 
-    let mut jhs = Vec::new();
+    let mut set = JoinSet::new();
 
     // get individual cases
     for case_id in case_ids {
         let sema = sema.clone();
-        let jh = tokio::spawn(async move {
+        let _handle = set.spawn(async move {
             let sema = sema.acquire().await.unwrap();
             let res = get_case(case_id, CaseCategory::MissingPersons).await;
             if res.is_err() {
@@ -177,7 +177,6 @@ async fn main() -> Result<(), Box<dyn Error>> {
             drop(sema);
             Ok(res.unwrap())
         });
-        jhs.push(jh);
     }
 
     // we shouldn't need to bother deserializing and reserializing these
@@ -185,8 +184,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
     // saving the failed IDs here should be enough
     let mut failed = Vec::<u64>::new();
 
-    for jh in jhs {
-        match jh.await.unwrap() {
+    while let Some(res) = set.join_next().await {
+        match res.unwrap() {
             Ok(body) => results.push(body),
             Err(id) => failed.push(id),
         };
