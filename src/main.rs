@@ -26,7 +26,7 @@ impl std::fmt::Display for CaseCategory {
 
 async fn output_json_lines(data: Vec<String>, outfile: &str) -> Result<(), Box<dyn Error>> {
     // open our JSON array
-    let mut out = String::from("[");
+    let mut out = String::from("[\r\n");
 
     // we handle things this way so we can skip the last comma easily
     let mut line_no = 0;
@@ -35,13 +35,15 @@ async fn output_json_lines(data: Vec<String>, outfile: &str) -> Result<(), Box<d
         out += &data[line_no];
         line_no += 1;
         // no comma after the last line
-        if line_no != data.len() - 1 {
+        if line_no != data.len() {
             out += ",\r\n";
         }
     }
 
     // we close our JSON array
-    out += "]";
+    out += "\r\n]";
+
+    std::fs::write(outfile, out)?;
 
     Ok(())
 }
@@ -207,6 +209,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
     }
 
     info!("{:?}", failed);
+
+    output_json_lines(results, "./out.json").await?;
 
     Ok(())
 }
