@@ -181,7 +181,6 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let mut set = JoinSet::new();
 
     // get individual cases
-    // TODO: let's just do the output here to save on RAM usage
     for case_id in case_ids {
         let sema = sema.clone();
         let _handle = set.spawn(async move {
@@ -201,6 +200,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     // saving the failed IDs here should be enough
     let mut failed = Vec::<u64>::new();
 
+    // TODO: let's just do the output here to save on RAM usage
     while let Some(res) = set.join_next().await {
         info!("{} remaining", set.len());
         match res.unwrap() {
