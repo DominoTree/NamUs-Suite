@@ -181,6 +181,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let mut set = JoinSet::new();
 
     // get individual cases
+    // TODO: let's just do the output here to save on RAM usage
     for case_id in case_ids {
         let sema = sema.clone();
         let _handle = set.spawn(async move {
@@ -208,7 +209,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         };
     }
 
-    info!("{:?}", failed);
+    info!("Failed to look up cases: {:?}", failed);
 
     output_json_lines(results, "./out.json").await?;
 
