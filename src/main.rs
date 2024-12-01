@@ -170,6 +170,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     let mut case_ids = Vec::<u64>::new();
     while let Some(res) = set.join_next().await {
+        info!("{} remaining", set.len());
         case_ids.append(&mut res?);
     }
 
@@ -198,11 +199,14 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let mut failed = Vec::<u64>::new();
 
     while let Some(res) = set.join_next().await {
+        info!("{} remaining", set.len());
         match res.unwrap() {
             Ok(body) => results.push(body),
             Err(id) => failed.push(id),
         };
     }
+
+    info!("{:?}", failed);
 
     Ok(())
 }
