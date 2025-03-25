@@ -6,6 +6,7 @@ use tokio::sync::Semaphore;
 use tokio::task::JoinSet;
 use tracing::{debug, info}; // apparently these are actually blocking, but it should be fine here
 use tracing_subscriber;
+use url::Url;
 
 enum CaseCategory {
     MissingPersons,
@@ -50,10 +51,8 @@ async fn output_json_lines(data: Vec<String>, outfile: &str) -> Result<(), Box<d
 
 async fn get_case(case_id: u64, category: CaseCategory) -> Result<String, Box<dyn Error>> {
     info!("Retrieving case {case_id}...");
-    let res = reqwest::get(format!(
-        "https://www.namus.gov/api/CaseSets/NamUs/{category}/Cases/{case_id}"
-    ))
-    .await;
+    let url = Url::parse("https://www.namus.gov/api/CaseSets/NamUs/")?.join(&category.to_string())?.join("Cases")?.join(&case_id.to_string())?;
+    let res = reqwest::get(url).await;
     match res {
         Ok(_) => {
             info!("Successfully retrieved case {case_id}");
@@ -83,10 +82,9 @@ async fn get_cases_by_state(
         ],
     });
 
+    let url = Url::parse("https://www.namus.gov/api/CaseSets/NamUs/")?.join(&category.to_string())?.join("Search")?;
     let resp = reqwest::Client::new()
-        .post(format!(
-            "https://www.namus.gov/api/CaseSets/NamUs/{category}/Search"
-        ))
+        .post(url)
         .json(&body)
         .send()
         .await?
